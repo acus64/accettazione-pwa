@@ -1,0 +1,22 @@
+{
+  "name": "Modulo Accettazione",
+  "short_name": "Accettazione",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f9f9f9",
+  "theme_color": "#024d4c",
+  "description": "Modulo accettazione carrozzeria Casella come PWA",
+  "icons": [
+    {
+      "src": "icon-16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    }
+  ],
+  "lang": "it"
+}

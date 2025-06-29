@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Modulo Accettazione</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+  <meta name="theme-color" content="#024d4c">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+
+    img.logo {
+      display: block;
+      margin: 0 auto 20px auto;
+      max-width: 250px;
+      height: auto;
+    }
+
+    h2 {
+      text-align: center;
+      color: #024d4c;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 15px;
+      font-size: 18px;
+      background-color: #25D366;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #1ebc59;
+    }
+
+    #aggiungi-dettatura {
+      width: auto;
+      margin-top: 5px;
+      padding: 10px 20px;
+      background-color: #0366d6;
+      font-size: 16px;
+    }
+
+    #aggiungi-dettatura:hover {
+      background-color: #024d4c;
+    }
+  </style>
+</head>
+<body>
+
+  <img src="icon-192.png" alt="Logo Carrozzeria Casella" class="logo">
+
+  <h2>Modulo Accettazione</h2>
+
+  <label for="data">Accettazione del:</label>
+  <input type="text" id="data" placeholder="Inserire data">
+
+  <label for="cliente">Cliente:</label>
+  <input type="text" id="cliente" placeholder="Inserire cliente">
+
+  <label for="marca">Marca:</label>
+  <input type="text" id="marca" placeholder="Inserire marca">
+
+  <label for="modello">Modello:</label>
+  <input type="text" id="modello" placeholder="Inserire modello">
+
+  <label for="targa">Targa:</label>
+  <input type="text" id="targa" placeholder="Inserire targa">
+
+  <label for="telaio">Telaio:</label>
+  <input type="text" id="telaio" placeholder="Inserire telaio">
+
+  <label for="lavori">Lavori da eseguire:</label>
+  <textarea id="lavori" rows="4" placeholder="Descrivere i lavori da eseguire"></textarea>
+  <button type="button" id="aggiungi-dettatura">Aggiungi Dettatura Vocale</button>
+
+  <button onclick="generaWhatsApp()">Invia su WhatsApp</button>
+
+  <script>
+    const fields = [
+      { id: 'data', prompt: 'Accettazione del', delay: 0 },
+      { id: 'cliente', prompt: 'Cliente', delay: 0 },
+      { id: 'marca', prompt: 'Marca', delay: 0 },
+      { id: 'modello', prompt: 'Modello', delay: 0 },
+      { id: 'targa', prompt: 'Targa', delay: 0 },
+      { id: 'telaio', prompt: 'Telaio', delay: 0 },
+      { id: 'lavori', prompt: 'Lavori da eseguire', delay: 3000 }
+    ];
+
+    const recognition = ('webkitSpeechRecognition' in window) ? new webkitSpeechRecognition() : null;
+    if (recognition) {
+      recognition.lang = 'it-IT';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+    }
+
+    function paroleANumeri(testo) {
+      const numeri = {
+        'uno': '1', 'due': '2', 'tre': '3', 'quattro': '4', 'cinque': '5',
+        'sei': '6', 'sette': '7', 'otto': '8', 'nove': '9', 'zero': '0'
+      };
+      return testo.split(' ').map(parola => numeri[parola.toLowerCase()] || parola).join(' ');
+    }
+
+    function oggiData() {
+      const oggi = new Date();
+      const gg = String(oggi.getDate()).padStart(2, '0');
+      const mm = String(oggi.getMonth() + 1).padStart(2, '0');
+      const yyyy = oggi.getFullYear();
+      return `${gg}/${mm}/${yyyy}`;
+    }
+
+    // Gestione dettatura per tutti i campi tranne "lavori"
+    fields.forEach((field, index) => {
+      if (field.id === 'lavori') return;
+      const input = document.getElementById(field.id);
+      input.addEventListener('focus', () => {
+        if (!recognition) return;
+        speak(field.prompt);
+        recognition.start();
+
+        recognition.onresult = (event) => {
+          let transcript = event.results[0][0].transcript.toLowerCase().trim();
+
+          if (transcript.includes("vai avanti")) {
+            recognition.stop();
+            const next = fields[index + 1];
+            if (next) setTimeout(() => document.getElementById(next.id).focus(), 500);
+            return;
+          }
+
+          if (field.id === 'data' && transcript.includes("oggi")) {
+            input.value = oggiData();
+          } else {
+            input.value = paroleANumeri(transcript);
+          }
+
+          recognition.stop();
+
+          const next = fields[index + 1];
+          if (next) {
+            setTimeout(() => document.getElementById(next.id).focus(), field.delay || 500);
+          }
+        };
+
+        recognition.onerror = (event) => {
+          console.log('Errore riconoscimento:', event.error);
+        };
+      });
+    });
+
+    // Gestione dettatura per "lavori da eseguire" con aggiunta testo
+    const lavoriInput = document.getElementById('lavori');
+    const btnAggiungi = document.getElementById('aggiungi-dettatura');
+
+    function startLavoriDictation() {
+      if (!recognition) return;
+      speak('Lavori da eseguire');
+      recognition.start();
+
+      recognition.onresult = (event) => {
+        let transcript = event.results[0][0].transcript.trim();
+
+        if (transcript.toLowerCase().includes("vai avanti")) {
+          recognition.stop();
+          const next = fields[fields.findIndex(f=>f.id==='lavori')+1];
+          if (next) setTimeout(() => document.getElementById(next.id).focus(), 500);
+          return;
+        }
+
+        // Aggiungi testo senza cancellare quello già presente
+        if (lavoriInput.value) {
+          lavoriInput.value += ' ' + paroleANumeri(transcript);
+        } else {
+          lavoriInput.value = paroleANumeri(transcript);
+        }
+        recognition.stop();
+      };
+
+      recognition.onerror = (event) => {
+        console.log('Errore riconoscimento:', event.error);
+      };
+    }
+
+    lavoriInput.addEventListener('focus', () => {
+      if (!lavoriInput.value) startLavoriDictation();
+    });
+
+    btnAggiungi.addEventListener('click', () => {
+      startLavoriDictation();
+    });
+
+    function speak(text) {
+      const synth = window.speechSynthesis;
+      if (!synth) return;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'it-IT';
+      synth.speak(utterance);
+    }
+
+    function generaWhatsApp() {
+      const data = document.getElementById('data').value;
+      const cliente = document.getElementById('cliente').value;
+      const marca = document.getElementById('marca').value;
+      const modello = document.getElementById('modello').value;
+      const targa = document.getElementById('targa').value;
+      const telaio = document.getElementById('telaio').value;
+      const lavori = document.getElementById('lavori').value;
+
+      const messaggio = `ACCETTAZIONE DEL: ${data}
+Cliente: ${cliente}
+Marca: ${marca}
+Modello: ${modello}
+Targa: ${targa}
+Telaio: ${telaio}
+Lavori da eseguire: ${lavori}`;
+
+      const encodedMsg = encodeURIComponent(messaggio);
+      const numero = "393758113568";
+      const url = `https://wa.me/${numero}?text=${encodedMsg}`;
+      window.open(url, '_blank');
+    }
+  </script>
+  <script>
+    // Service worker per PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js');
+      });
+    }
+  </script>
+</body>
+</html>
